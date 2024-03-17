@@ -1,10 +1,13 @@
+import diagnosisService from "../../services/diagnoses";
 import patientService from "../../services/patients";
-import { Patient } from "../../types";
-import React from "react";
+import { Diagnosis, Patient } from "../../types";
+import PatientEntry from "./PatientEntry";
 import GenderIcon from "./GenderIcon";
+import React from "react";
 
 export interface PatientViewProps {
-    patient: Patient
+    patient: Patient,
+    diagnoses: Diagnosis[]
 }
 
 export interface PatientPageProps {
@@ -21,13 +24,19 @@ const PatientView = (props: PatientViewProps) => {
 
             SSN: {props.patient.ssn || '-'} <br/>
             Occupation: {props.patient.occupation}
+
+            <h3>Entries</h3>
+
+            {props.patient.entries.map((entry) =>
+                <PatientEntry key={entry.id} entry={entry} diagnoses={props.diagnoses} />
+            )}
         </>
     );
 };
 
 const PatientPage = (props: PatientPageProps) => {
     const [patient, setPatient] = React.useState<Patient | null>(null);
-    const [loading, setLoading] = React.useState<boolean>(true);
+    const [diagnoses, setDiagnoses] = React.useState<Diagnosis[]>([]);
 
     React.useEffect(() => {
         const fetchPatient = async () => {
@@ -37,21 +46,26 @@ const PatientPage = (props: PatientPageProps) => {
             } catch {
                 setPatient(null);
             }
-
-            setLoading(false);
         };
+
+        const fetchDiagnoses = async () => {
+            try {
+                const diagnoses = await diagnosisService.getAll();
+                setDiagnoses(diagnoses);
+            } catch {
+                setDiagnoses([]);
+            }
+        };
+
         void fetchPatient();
+        void fetchDiagnoses();
     }, [props.patientId]);
 
-    if (loading) {
+    if (!patient || !diagnoses) {
         return <p>Loading...</p>;
     }
 
-    if (!patient) {
-        return <p>Failed to find the patient</p>;
-    }
-
-    return <PatientView patient={patient} />;
+    return <PatientView patient={patient} diagnoses={diagnoses}/>;
 };
 
 export default PatientPage;
